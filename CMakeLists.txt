@@ -37,7 +37,9 @@ target_compile_definitions(CrossVersion PRIVATE
 )
 
 if(MSVC)
-    target_compile_options(CrossVersion PRIVATE /utf-8 /W4 /EHa /permissive-)
+    # /bigobj: nlohmann/json.hpp 单头文件在 MSVC 下会产生大量 section，
+    # 缺了会报 C1128（对象文件节数超限）。
+    target_compile_options(CrossVersion PRIVATE /utf-8 /W4 /EHa /permissive- /bigobj)
     set_target_properties(CrossVersion PROPERTIES WINDOWS_EXPORT_ALL_SYMBOLS ON)
 else()
     target_compile_options(CrossVersion PRIVATE -Wall -Wextra -Wno-unused-parameter)
