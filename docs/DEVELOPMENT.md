@@ -129,7 +129,7 @@ xmake -y
 
 `scripts/build_codecs.ps1` 在克隆 Protocol 分支后、configure 前打两类补丁（只改 vendor 目录，不动上游）：
 
-1. `static_assert(mXxx.size() == ...)` -> `static_assert(decltype(mXxx)::size() == ...)`：通过对象名调用 static constexpr 的 `std::bitset::size()`，GCC/Clang 接受、MSVC 报 C2131；
+1. `static_assert(mXxx.size() == ...)` -> `static_assert(decltype(mXxx){}.size() == ...)`：在常量表达式里调用 `std::bitset::size()`，GCC 的实现是 static constexpr（接受对象名）、MSVC 的实现是非静态 constexpr 成员（`obj.size()` 报 C2131，`decltype(x)::size()` 报 C2352），对 constexpr 临时对象调用则两边都成立；
 2. `/FIcharconv` 强制前置包含：Protocol 的 CMake 把 sculk/reflection 钉在 v1.4.0，其 `string_utils.hpp` 缺 `<charconv>`（GCC 传递包含、MSVC 没有，C2039）。上游 Reflection 更新 tag 后此补丁自动失效。
 
 ## 8. 待补三件事

@@ -3,9 +3,11 @@
 #
 # MSVC 兼容补丁（克隆后、configure 前打，补丁面只覆盖克隆出的 vendor 目录，
 # 不修改上游仓库）：
-#   1. Protocol v944/v975 分支的 static_assert(mXxx.size() == ...) 通过对象名调用
-#      std::bitset::size()（static constexpr），GCC/Clang 接受，MSVC 报 C2131。
-#      改写为 decltype(mXxx)::size()，两个编译器都接受。
+#   1. Protocol v944/v975 分支的 static_assert(mXxx.size() == ...) 在常量表达式里
+#      调用 std::bitset::size()：GCC 的实现是 static constexpr（接受对象名调用），
+#      MSVC 的实现是非静态 constexpr 成员（obj.size() 报 C2131，decltype(x)::size()
+#      报 C2352）。改写为对 constexpr 临时对象调用 decltype(mXxx){}.size()，
+#      两个编译器都接受。
 #   2. Protocol 的 CMake 把 sculk/reflection 钉在 v1.4.0，其 string_utils.hpp
 #      缺 #include <charconv>（GCC 传递包含，MSVC 没有），报 C2039。
 #      用 /FIcharconv 强制前置包含解决，无需改 Reflection。
@@ -31,11 +33,11 @@ foreach ($c in $ready) {
         git clone --depth 1 -b $branch https://github.com/SculkCatalystMC/Protocol.git $src
         if ($LASTEXITCODE -ne 0) { throw "clone failed for $branch" }
 
-        # 补丁 1：static_assert(obj.size()) -> static_assert(decltype(obj)::size())
+        # 补丁 1：static_assert(obj.size()) -> static_assert(decltype(obj){}.size())
         $patched = 0
         Get-ChildItem "$src/src" -Recurse -Filter *.cpp | ForEach-Object {
             $text = Get-Content $_.FullName -Raw
-            $new = $text -replace 'static_assert\((m\w+)\.size\(\) == (\w+)\);', 'static_assert(decltype($1)::size() == $2);'
+            $new = $text -replace 'static_assert\((m\w+)\.size\(\) == (\w+)\);', 'static_assert(decltype($1){}.size() == $2);'
             if ($new -ne $text) {
                 Set-Content $_.FullName -Value $new -NoNewline -Encoding UTF8
                 $patched++
