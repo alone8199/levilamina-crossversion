@@ -12,7 +12,8 @@ SRC = ROOT / "src"
 DIST = ROOT / "dist"
 
 REQUIRED = [
-    "README.md", "versions.json", "codec_registry.json", "manifest.json", "tooth.json",
+    "README.md", "versions.json", "codec_registry.json", "translation_rules.json",
+    "manifest.json", "tooth.json",
     "xmake.lua", "CMakeLists.txt", "codec/CMakeLists.txt", "codec/CodecExports.cpp",
     "src/CodecApi.h", "src/CrossVersion.h", "src/CrossVersion.cpp",
     "src/NetworkHooks.cpp", "src/DllMain.cpp", "src/generated/TargetConfig.h",
@@ -54,6 +55,22 @@ def main() -> int:
     results.append(check("ready codec 都有分支", all(
         c.get("branch") and c.get("abi") for c in registry["codecs"] if c["status"] == "ready"
     ), f"ready = {ready}"))
+
+    print("== 翻译规则 ==")
+    rules = json.loads((ROOT / "translation_rules.json").read_text(encoding="utf-8"))
+    pairs = rules.get("pairs", [])
+    results.append(check("翻译规则非空", len(pairs) > 0, f"{len(pairs)} 对"))
+    bad_ref = [f"{p['from']}->{p['to']}" for p in pairs
+               if p.get("from") not in protocols or p.get("to") not in protocols]
+    results.append(check("规则对的协议号都已登记", not bad_ref, ",".join(bad_ref) if bad_ref else ""))
+    bad_ready = [f"{p['from']}->{p['to']}" for p in pairs
+                 if p.get("status") == "ready"
+                 and (p.get("from") not in ready or p.get("to") not in ready)]
+    results.append(check("ready 翻译对的两侧 codec 都是 ready", not bad_ready,
+                         ",".join(bad_ready) if bad_ready else ""))
+    dup = [f"{p['from']}->{p['to']}" for p in pairs
+           if len([q for q in pairs if q.get("from") == p.get("from") and q.get("to") == p.get("to")]) > 1]
+    results.append(check("规则对无重复", len(set(dup)) == len(dup), ",".join(sorted(set(dup))) if dup else ""))
 
     print("== 生成头 ==")
     tc = (SRC / "generated/TargetConfig.h")

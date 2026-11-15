@@ -114,24 +114,42 @@ xmake -y
 
 注意：MSVC 下 `nlohmann/json.hpp` 需要 `/bigobj`（CMakeLists 已加）；自定义格式化函数命名为 `formatText` 而不是 `format`，避免与 `std::format` 的 ADL 二义性（C2668）。
 
-## 6. 待补三件事
+## 6. 翻译规则引擎（v0.2.0 起）
 
-1. **BDS 网络 hook 符号与签名**（`versions.json` 的 `hookSymbols`）。每个版本需要收包点、发包点、Login 握手点三个符号；BDS 内部符号逐版本变化，是「按服务器版本单独构建」的根因。目前仅 1.26.60 填了一条示例。
-2. **协议定义**。开源 Protocol 只有 `v944` / `v975` / `main(1001)` 三个分支；其余 23 个协议号是路由表占位，补齐一个约需 230 个包类。
-3. **跨版本翻译规则**。包 ID 重映射、字段增删、物品/方块注册表、VirtualContent 回退等。当前规则表为空，`TranslationPipeline::hasRule` 只对同协议返回 true，未实现的协议对会被明确拒绝而不是静默放行（自测有断言）。
+数据流：`translation_rules.json` -> `TranslationRules::load()`（启动/reload 时解析，JSONC 带注释）-> `TranslationPipeline::hasRule()` 决定路由 -> `process()` 里按包应用策略。
+
+- 规则按「源协议 -> 目标协议」逐对登记，`status=ready` 且两侧 codec 已加载才放行；
+- 逐包策略：`deny`（丢弃并写日志）、`remap`（包 ID 重映射）、`pass`；planned 对一律拒绝；
+- `strategy=header` 包头级（payload 原样），`strategy=model` 字段级（需两侧 codec 开 `CV_ENABLE_FULL_PACKET_MODEL`，目前仅 1001 分支支持）；
+- 就绪规则：898 ⇄ 944（v898 codec 由 v944 分支派生，包结构同源）。
+
+新增一条规则的步骤：在 `translation_rules.json` 加 planned 对 -> 补两侧协议定义与差异分析 -> 填 `deny`/`remap` -> 改 `status: ready` -> 跑 `verify_layout.py`（会校验规则对的协议号与 ready codec 一致）。
+
+## 7. codec 构建的 MSVC 兼容补丁
+
+`scripts/build_codecs.ps1` 在克隆 Protocol 分支后、configure 前打两类补丁（只改 vendor 目录，不动上游）：
+
+1. `static_assert(mXxx.size() == ...)` -> `static_assert(decltype(mXxx)::size() == ...)`：通过对象名调用 static constexpr 的 `std::bitset::size()`，GCC/Clang 接受、MSVC 报 C2131；
+2. `/FIcharconv` 强制前置包含：Protocol 的 CMake 把 sculk/reflection 钉在 v1.4.0，其 `string_utils.hpp` 缺 `<charconv>`（GCC 传递包含、MSVC 没有，C2039）。上游 Reflection 更新 tag 后此补丁自动失效。
+
+## 8. 待补三件事
+
+1. **BDS 网络 hook 符号与签名**（`versions.json` 的 `hookSymbols`）。每个版本需要收包点、发包点、Login 握手点三个符号；BDS 内部符号逐版本变化，是「按服务器版本单独构建」的根因。目前仅 1.26.60 填了一条示例。**hook 接线之前，就绪的翻译规则不会实际生效。**
+2. **协议定义**。开源 Protocol 只有 `v944` / `v975` / `main(1001)` 三个分支；其余协议号是路由表占位，补齐一个约需 230 个包类，或从最近分支派生（参照 898 的 `fidelity: derived` 做法）。
+3. **更多翻译规则对**。下一批：944 ⇄ 975 ⇄ 1001 的差异清单（相邻分支差异最小），再向 844 / 859 / 860 与 2168+ 段扩展。
 
 各分支 API 有漂移（`v944`/`v975` 是 `readNoHeader`，`main` 是 `read`），`CryptoManager` 里硬编码了 `abi_v944`，参数化构建 codec 时要一起修。
 
-## 7. 合规
+## 9. 合规
 
-- 使用 MPL-2.0 的 Protocol 源码：修改并分发时，被修改的覆盖文件继续以 MPL-2.0 发布，保留版权声明，提供对应源码。
+- 使用 MPL-2.0 的 Protocol 源码：修改并分发时，被修改的覆盖文件继续以 MPL-2.0 发布，保留版权声明，提供对应源码。CI 的 MSVC 兼容补丁同样只作用于构建产物。
 - 不打包、不链接、不分发 Glacie / ProtocolLib 的任何二进制，不复刻其授权机制。
 - 内置 `nlohmann/json.hpp`（MIT，v3.11.3）。
 - 自建代码可自由许可。
 
-## 8. 路线图
+## 10. 路线图
 
-1. 补齐 20 个版本的 `hookSymbols`，接通 `NetworkHooks.cpp`，让真机路径产出可接管网络的 DLL。
-2. 为 `v944` / `v975` / `v1001` 登记第一批翻译规则（同族协议，差异最小）。
+1. 补齐 21 个版本的 `hookSymbols`，接通 `NetworkHooks.cpp`，让真机路径产出可接管网络的 DLL。
+2. 登记 944 ⇄ 975 ⇄ 1001 的差异清单并把对应翻译对从 planned 转 ready（model 策略）。
 3. 按 `1.21.11x ~ 1.21.12x`（844 / 859 / 860）补协议定义。
 4. 补 `2168 ~ 2225` 段，跟进最新 BDS。

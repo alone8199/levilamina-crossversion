@@ -260,6 +260,86 @@ void CodecManager::unloadAllLocked() {
     mCodecs.clear();
 }
 
+// ---------------------------------------------------------------- 翻译规则表
+
+TranslationRules& TranslationRules::instance() {
+    static TranslationRules value;
+    return value;
+}
+
+TranslationPair* TranslationRules::pairRef(std::uint32_t from, std::uint32_t to) {
+    const std::uint64_t key = (static_cast<std::uint64_t>(from) << 32) | to;
+    auto                it  = mPairs.find(key);
+    return it == mPairs.end() ? nullptr : &it->second;
+}
+
+bool TranslationRules::load(const std::filesystem::path& path) {
+    Json root = readJson(path);
+    if (!root.is_object() || !root.contains("pairs") || !root["pairs"].is_array()) {
+        logWarn("translation_rules.json not found or invalid; cross-version translation disabled");
+        return false;
+    }
+
+    std::lock_guard<std::mutex> lock(mMutex);
+    mPairs.clear();
+    for (const auto& item : root["pairs"]) {
+        if (!item.is_object() || !item.contains("from") || !item.contains("to")) continue;
+        TranslationPair pair{};
+        pair.from     = item["from"].get<std::uint32_t>();
+        pair.to       = item["to"].get<std::uint32_t>();
+        pair.ready    = item.contains("status") && item["status"] == "ready";
+        if (item.contains("strategy") && item["strategy"].is_string()) pair.strategy = item["strategy"].get<std::string>();
+        if (item.contains("fidelity") && item["fidelity"].is_string()) pair.fidelity = item["fidelity"].get<std::string>();
+        if (item.contains("note") && item["note"].is_string())         pair.note     = item["note"].get<std::string>();
+        if (item.contains("packets") && item["packets"].is_object()) {
+            const auto& packets = item["packets"];
+            if (packets.contains("deny") && packets["deny"].is_array()) {
+                for (const auto& id : packets["deny"]) pair.deny.insert(id.get<std::uint32_t>());
+            }
+            if (packets.contains("remap") && packets["remap"].is_object()) {
+                for (auto it = packets["remap"].begin(); it != packets["remap"].end(); ++it) {
+                    pair.remap[static_cast<std::uint32_t>(std::stoul(it.key()))] = it.value().get<std::uint32_t>();
+                }
+            }
+        }
+        mPairs[(static_cast<std::uint64_t>(pair.from) << 32) | pair.to] = std::move(pair);
+    }
+    return true;
+}
+
+std::size_t TranslationRules::pairCount() const {
+    std::lock_guard<std::mutex> lock(mMutex);
+    return mPairs.size();
+}
+
+std::size_t TranslationRules::readyCount() const {
+    std::lock_guard<std::mutex> lock(mMutex);
+    std::size_t count = 0;
+    for (const auto& [key, pair] : mPairs) {
+        if (pair.ready) ++count;
+    }
+    return count;
+}
+
+const TranslationPair* TranslationRules::find(std::uint32_t from, std::uint32_t to) const {
+    std::lock_guard<std::mutex> lock(mMutex);
+    const std::uint64_t key = (static_cast<std::uint64_t>(from) << 32) | to;
+    auto                it  = mPairs.find(key);
+    return it == mPairs.end() ? nullptr : &it->second;
+}
+
+PacketPolicy TranslationRules::policyFor(std::uint32_t from, std::uint32_t to, std::uint32_t packetId) const {
+    std::lock_guard<std::mutex> lock(mMutex);
+    const std::uint64_t key = (static_cast<std::uint64_t>(from) << 32) | to;
+    auto                it  = mPairs.find(key);
+    if (it == mPairs.end()) return PacketPolicy::NoRule;
+    const TranslationPair& pair = it->second;
+    if (!pair.ready) return PacketPolicy::Deny;
+    if (pair.deny.count(packetId) != 0) return PacketPolicy::Deny;
+    if (pair.remap.count(packetId) != 0) return PacketPolicy::Remap;
+    return PacketPolicy::Pass;
+}
+
 // ---------------------------------------------------------------- 翻译链
 
 TranslationPipeline& TranslationPipeline::instance() {
@@ -268,9 +348,11 @@ TranslationPipeline& TranslationPipeline::instance() {
 }
 
 bool TranslationPipeline::hasRule(std::uint32_t clientProtocol, std::uint32_t serverProtocol) const {
-    // 规则按「客户端协议 -> 服务端协议」登记，见 docs/COVERAGE.md。
-    // 当前只实现了同协议直通与包 ID 重映射骨架，字段级规则待逐对补齐。
-    return clientProtocol == serverProtocol;
+    if (clientProtocol == serverProtocol) return true;
+    // 规则按「客户端协议 -> 服务端协议」登记在 translation_rules.json，
+    // 只有 status=ready 的翻译对可用；未登记时由路由层按 mode 回退到拒绝。
+    const TranslationPair* pair = TranslationRules::instance().find(clientProtocol, serverProtocol);
+    return pair != nullptr && pair->ready;
 }
 
 std::vector<std::uint8_t> TranslationPipeline::process(
@@ -285,10 +367,27 @@ std::vector<std::uint8_t> TranslationPipeline::process(
 
     const LoadedCodec* from = CodecManager::instance().find(fromProtocol);
     const LoadedCodec* to   = CodecManager::instance().find(toProtocol);
-    if (!from || !to) return std::vector<std::uint8_t>(data, data + size);
+    if (!from || !to) {
+        if (fromProtocol != toProtocol) {
+            // 跨协议但 codec 缺失：宁可丢弃也不能把 A 版本字节原样发给 B 版本。
+            logWarn(formatText("Translation v{0}->v{1}: codec missing, packet dropped", fromProtocol, toProtocol));
+            return {};
+        }
+        return std::vector<std::uint8_t>(data, data + size);
+    }
+
+    const TranslationPair* rule = nullptr;
+    if (fromProtocol != toProtocol) {
+        rule = TranslationRules::instance().find(fromProtocol, toProtocol);
+        if (!rule || !rule->ready) {
+            logWarn(formatText("Translation v{0}->v{1}: no ready rule, packet dropped", fromProtocol, toProtocol));
+            return {};
+        }
+    }
 
     // 字段级模型目前只在同一个 codec 内成对使用：跨 codec 的 IPacket 属于不同 DLL，
-    // 需要先引入统一中间表示（IR）才能互转。跨版本翻译先走包头级 + 规则表。
+    // 需要先引入统一中间表示（IR）才能互转。跨版本翻译走包头级 + 规则表，
+    // model 策略在两侧 codec 均以 CV_ENABLE_FULL_PACKET_MODEL=ON 编译后启用。
     const bool useFull = from->fullModel && to->fullModel && from->api->decodeFull
                          && (from->protocol == to->protocol);
     CvPacket packet{};
@@ -300,8 +399,21 @@ std::vector<std::uint8_t> TranslationPipeline::process(
         return {};
     }
 
-    // 翻译点：包 ID 重映射、字段增删、物品/方块注册表映射、VirtualContent 回退。
-    // 未登记规则时保持 packetId 与 payload 不变（仅重写包头）。
+    // 单包策略：deny 丢弃、remap 重写包 ID、pass 原样。
+    if (rule) {
+        const PacketPolicy policy = TranslationRules::instance().policyFor(fromProtocol, toProtocol, packet.packetId);
+        if (policy == PacketPolicy::Deny) {
+            if (from->api->releasePacket) from->api->releasePacket(&packet);
+            logWarn(formatText("Packet {0} denied by rule v{1}->v{2}, dropped", packet.packetId, fromProtocol, toProtocol));
+            ok = true;
+            return {};
+        }
+        if (policy == PacketPolicy::Remap) {
+            auto it = rule->remap.find(packet.packetId);
+            if (it != rule->remap.end()) packet.packetId = it->second;
+        }
+    }
+
     packet.protocolVersion = toProtocol;
 
     std::uint8_t* output = nullptr;
@@ -310,7 +422,7 @@ std::vector<std::uint8_t> TranslationPipeline::process(
         ? to->api->encodeFull(to->session, &packet, &output, &outputSize)
         : to->api->encode(to->session, &packet, &output, &outputSize);
 
-    if (to->api->releasePacket) to->api->releasePacket(&packet);
+    if (from->api->releasePacket) from->api->releasePacket(&packet);
     if (encodeResult != 0 || !output) {
         logWarn(formatText("Packet encode failed for protocol {0}", toProtocol));
         return {};
@@ -416,10 +528,13 @@ bool Plugin::initialize() {
 
     const auto codecDir = mDirectory / ConfigStore::instance().get().codecDirectory;
     const auto count = CodecManager::instance().loadAll(codecDir);
+    TranslationRules::instance().load(mDirectory / "translation_rules.json");
 
     logInfo(formatText("CrossVersion loaded! Target BDS {0}, server protocol {1}", std::string(kBdsVersion), kServerProtocol));
     logInfo(formatText("Registered {0} client protocols", kAllProtocols.size()));
     logInfo(formatText("Codec directory: {0}", codecDir.string()));
+    logInfo(formatText("Translation rules: {0} pairs, {1} ready",
+                   TranslationRules::instance().pairCount(), TranslationRules::instance().readyCount()));
     logInfo(formatText("Supported client protocols: {0}",
                    joinProtocols(std::vector<std::uint32_t>(kAllProtocols.begin(), kAllProtocols.end()))));
 
@@ -442,6 +557,7 @@ void Plugin::shutdown() {
 bool Plugin::reload() {
     ConfigStore::instance().load(mDirectory / "config.jsonc");
     Localization::instance().load(mDirectory, ConfigStore::instance().get().language);
+    TranslationRules::instance().load(mDirectory / "translation_rules.json");
     CodecManager::instance().loadAll(mDirectory / ConfigStore::instance().get().codecDirectory);
     logInfo(tr("Configuration reloaded"));
     return true;
@@ -454,6 +570,8 @@ std::string Plugin::status() const {
         << "registered protocols: " << kAllProtocols.size() << "\n"
         << "codecs ready in registry: " << kReadyProtocols.size() << "\n"
         << "codecs loaded: " << (loaded.empty() ? "none" : joinProtocols(loaded)) << "\n"
+        << "translation rules: " << TranslationRules::instance().pairCount()
+        << " pairs (" << TranslationRules::instance().readyCount() << " ready)\n"
         << "hook symbols: " << (kHasAnyHook ? "present" : "not filled (network interception disabled)") << "\n"
         << "mode: " << (ConfigStore::instance().get().mode == RouteMode::Strict ? "strict" : "passthrough");
     return oss.str();

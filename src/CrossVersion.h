@@ -95,6 +95,44 @@ private:
     std::unordered_map<std::uint32_t, LoadedCodec> mCodecs{};
 };
 
+// ---------------------------------------------------------------- 翻译规则表
+// 数据源：插件目录下的 translation_rules.json（与 codec_registry.json 同级）。
+// 路由层只对 status=ready 且两侧 codec 均已加载的翻译对放行。
+
+enum class PacketPolicy { Pass, Remap, Deny, NoRule };
+
+struct TranslationPair {
+    std::uint32_t from{0};
+    std::uint32_t to{0};
+    bool          ready{false};
+    std::string   strategy{"header"}; // header | model
+    std::string   fidelity{};
+    std::string   note{};
+    std::unordered_set<std::uint32_t> deny{};
+    std::unordered_map<std::uint32_t, std::uint32_t> remap{};
+};
+
+class TranslationRules {
+public:
+    static TranslationRules& instance();
+
+    bool load(const std::filesystem::path& path);
+
+    std::size_t pairCount() const;
+    std::size_t readyCount() const;
+
+    // 精确查找某方向的翻译对；不存在返回 nullptr。
+    const TranslationPair* find(std::uint32_t from, std::uint32_t to) const;
+
+    // 单包策略：Deny 丢弃并写日志；Remap 重写包 ID；Pass 原样；NoRule 未登记。
+    PacketPolicy policyFor(std::uint32_t from, std::uint32_t to, std::uint32_t packetId) const;
+
+private:
+    TranslationPair*       pairRef(std::uint32_t from, std::uint32_t to);
+    mutable std::mutex     mMutex{};
+    std::unordered_map<std::uint64_t, TranslationPair> mPairs{};
+};
+
 // ---------------------------------------------------------------- 路由
 
 enum class RouteDecision { Translate, Passthrough, Reject };

@@ -40,6 +40,28 @@ int main() {
     const bool configLoaded = ConfigStore::instance().load(configPath);
     check(configLoaded, "config.jsonc parses (JSONC with comments)");
 
+    // 翻译规则表：加载、方向性、逐对状态。
+    const bool rulesLoaded = TranslationRules::instance().load(
+        std::string(CV_SOURCE_DIR) + "/translation_rules.json");
+    check(rulesLoaded, "translation_rules.json parses (JSONC with comments)");
+    check(TranslationRules::instance().pairCount() >= 12, "rule table has all ready-protocol pairs");
+    check(TranslationRules::instance().readyCount() >= 2, "rule table has ready pairs (898 <-> 944)");
+    check(TranslationRules::instance().find(898u, 944u) != nullptr, "898 -> 944 rule registered");
+    check(TranslationRules::instance().find(944u, 898u) != nullptr, "944 -> 898 rule registered (symmetric)");
+    check(TranslationRules::instance().find(898u, 975u) != nullptr
+              && !TranslationRules::instance().find(898u, 975u)->ready,
+          "898 -> 975 rule registered as planned (not ready)");
+    check(TranslationRules::instance().find(662u, 944u) == nullptr,
+          "unregistered pair has no rule");
+    check(TranslationRules::instance().policyFor(898u, 944u, 4u) == PacketPolicy::Pass,
+          "header strategy passes packets by default");
+    check(TranslationRules::instance().policyFor(898u, 975u, 4u) == PacketPolicy::Deny,
+          "planned pair denies packets (no silent passthrough)");
+    check(TranslationRules::instance().policyFor(898u, 944u, 1u) == PacketPolicy::Pass,
+          "policy falls back to pass for unknown packet ids");
+    check(TranslationPipeline::instance().hasRule(898u, 944u), "pipeline sees ready rule");
+    check(!TranslationPipeline::instance().hasRule(898u, 975u), "pipeline rejects planned rule");
+
     // 路由决策。
     const auto same = ProtocolRouter::instance().onClientHello(1u, kServerProtocol);
     check(same.decision == RouteDecision::Passthrough, "same protocol -> passthrough");

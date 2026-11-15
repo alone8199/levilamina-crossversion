@@ -78,6 +78,13 @@
       "artifact": "CrossVersion-levilamina-1.21.130-windows-x86_64.zip"
     },
     {
+      "id": "1.21.132",
+      "bds": "1.21.132.x",
+      "ll_version": "21.132.0",
+      "server_protocol": 898,
+      "artifact": "CrossVersion-levilamina-1.21.132-windows-x86_64.zip"
+    },
+    {
       "id": "1.26.0",
       "bds": "1.26.0.x",
       "ll_version": "26.0.0",

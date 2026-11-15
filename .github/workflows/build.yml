@@ -8,7 +8,7 @@ on:
   workflow_dispatch:
     inputs:
       versions:
-        description: '逗号分隔的版本 id（留空 = 全部 20 个），例如 1.21.120,1.26.30,1.26.60'
+        description: '逗号分隔的版本 id（留空 = 全部），例如 1.21.132,1.26.30,1.26.60'
         required: false
         default: ''
 
@@ -143,8 +143,8 @@ jobs:
             "Commit            : ${{ github.sha }}",
             "",
             "这个 DLL 是 standalone 构建：不链接 LeviLamina SDK，也不 hook BDS 网络符号。",
-            "它包含完整的配置解析、26 项协议路由表、codec 动态加载与翻译链，",
-            "可被加载并做自检，但不能直接让不同版本客户端进服。",
+            "它包含完整的配置解析、全量协议路由表、翻译规则引擎、codec 动态加载与翻译链，",
+            "随包附带 codecs/ 下的协议编解码模块（见 translation_rules.json 登记的就绪翻译对）。",
             "",
             "要产出可接管网络的真机插件，请在 Windows + VS2022 + xmake >= 3.0.0 下：",
             "  python scripts/generate_matrix.py --target ${{ matrix.id }}",
@@ -154,6 +154,7 @@ jobs:
             "详见仓库 README 第 6 节。"
           )
           $notes | Set-Content "$stage/STATUS.txt" -Encoding UTF8
+          Copy-Item "translation_rules.json" "$stage/translation_rules.json" -Force
           New-Item -ItemType Directory -Force -Path "out" | Out-Null
           Compress-Archive -Path "staging/CrossVersion" -DestinationPath "out/${{ matrix.artifact }}" -Force
           Write-Host "Built out/${{ matrix.artifact }}"

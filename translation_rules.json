@@ -1,0 +1,99 @@
+{
+  "schema": 1,
+  "description": "跨版本翻译规则表。按「源协议 -> 目标协议」逐对登记。主插件启动时加载本文件，路由层只对 status=ready 且两侧 codec 均已加载的翻译对放行；未登记或 planned 的翻译对会被明确拒绝（不会静默放行坏数据）。",
+  "notes": [
+    "strategy=header：包头级翻译。解码包头（协议号/包ID/subClientID），按规则重写后重新编码，payload 原样保留。适用于包结构完全一致或同源派生的协议对。",
+    "strategy=model：字段级翻译。用源 codec 的完整包模型解码成中间表示，应用字段规则后用目标 codec 重编码。要求两侧 codec 以 CV_ENABLE_FULL_PACKET_MODEL=ON 编译。",
+    "packets.deny：命中即丢弃该包并写日志（用于已确认在目标版本被移除的包）。",
+    "packets.remap：包 ID 重映射 { 源ID: 目标ID }。",
+    "当前首批规则只覆盖 898 <-> 944：v898 codec 由 v944 分支派生，两者包结构同源，header 级翻译成立。其余对需要先补齐两侧字段级定义与差异分析，逐步从 planned 转 ready。"
+  ],
+  "pairs": [
+    {
+      "from": 898, "to": 944,
+      "status": "ready",
+      "strategy": "header",
+      "fidelity": "derived-family",
+      "packets": { "default": "pass", "deny": [], "remap": {} },
+      "note": "1.21.13x <-> 1.26.1x。v898 codec 由 v944 分支派生，包结构同源；包 ID 无重映射。字段差异随 1.21.13x 实测校准后升级为 model 策略。"
+    },
+    {
+      "from": 944, "to": 898,
+      "status": "ready",
+      "strategy": "header",
+      "fidelity": "derived-family",
+      "packets": { "default": "pass", "deny": [], "remap": {} },
+      "note": "1.26.1x -> 1.21.13x 方向，与上行对称。"
+    },
+    {
+      "from": 898, "to": 975,
+      "status": "planned",
+      "strategy": "model",
+      "packets": { "default": "deny", "deny": [], "remap": {} },
+      "note": "需要 944->975 的包差异清单（新增/移除/字段变更），从 MinecraftPacketIds 与包源码 diff 生成后转 ready。"
+    },
+    {
+      "from": 975, "to": 898,
+      "status": "planned",
+      "strategy": "model",
+      "packets": { "default": "deny", "deny": [], "remap": {} },
+      "note": "同上，反向。"
+    },
+    {
+      "from": 898, "to": 1001,
+      "status": "planned",
+      "strategy": "model",
+      "packets": { "default": "deny", "deny": [], "remap": {} },
+      "note": "需要 944->1001 的包差异清单；1001 分支已支持字段级模型，是第一个可升级为 model 翻译的目标。"
+    },
+    {
+      "from": 1001, "to": 898,
+      "status": "planned",
+      "strategy": "model",
+      "packets": { "default": "deny", "deny": [], "remap": {} },
+      "note": "同上，反向。"
+    },
+    {
+      "from": 944, "to": 975,
+      "status": "planned",
+      "strategy": "model",
+      "packets": { "default": "deny", "deny": [], "remap": {} },
+      "note": "相邻 upstream 分支对，差异最小，适合作为 model 策略的首个落地样本。"
+    },
+    {
+      "from": 975, "to": 944,
+      "status": "planned",
+      "strategy": "model",
+      "packets": { "default": "deny", "deny": [], "remap": {} },
+      "note": "同上，反向。"
+    },
+    {
+      "from": 944, "to": 1001,
+      "status": "planned",
+      "strategy": "model",
+      "packets": { "default": "deny", "deny": [], "remap": {} },
+      "note": "待 944->1001 差异清单。"
+    },
+    {
+      "from": 1001, "to": 944,
+      "status": "planned",
+      "strategy": "model",
+      "packets": { "default": "deny", "deny": [], "remap": {} },
+      "note": "同上，反向。"
+    },
+    {
+      "from": 975, "to": 1001,
+      "status": "planned",
+      "strategy": "model",
+      "packets": { "default": "deny", "deny": [], "remap": {} },
+      "note": "待 975->1001 差异清单。"
+    },
+    {
+      "from": 1001, "to": 975,
+      "status": "planned",
+      "strategy": "model",
+      "packets": { "default": "deny", "deny": [], "remap": {} },
+      "note": "同上，反向。"
+    }
+  ]
+}

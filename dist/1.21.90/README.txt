@@ -7,8 +7,8 @@ CrossVersion 单插件构建 - BDS 1.21.90.x
 
 路由表
   登记的全部客户端协议 : 26 个
-  已实现 codec 的协议   : 944, 975, 1001
-  待补 codec 的协议     : 23 个（当前按 passthrough / strict 处理）
+  已实现 codec 的协议   : 898, 944, 975, 1001
+  待补 codec 的协议     : 22 个（当前按 passthrough / strict 处理）
 
 本版本状态
   网络 hook 符号 : 待补齐（网络接管关闭，插件仍可加载与配置）

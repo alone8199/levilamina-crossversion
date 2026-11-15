@@ -1,5 +1,14 @@
 # 在 Windows CI 上按 codec_registry.json 编译各协议版本的 codec_v*.dll
 # 每个分支单独 configure/build 一次，产物放在 out/codecs/
+#
+# MSVC 兼容补丁（克隆后、configure 前打，补丁面只覆盖克隆出的 vendor 目录，
+# 不修改上游仓库）：
+#   1. Protocol v944/v975 分支的 static_assert(mXxx.size() == ...) 通过对象名调用
+#      std::bitset::size()（static constexpr），GCC/Clang 接受，MSVC 报 C2131。
+#      改写为 decltype(mXxx)::size()，两个编译器都接受。
+#   2. Protocol 的 CMake 把 sculk/reflection 钉在 v1.4.0，其 string_utils.hpp
+#      缺 #include <charconv>（GCC 传递包含，MSVC 没有），报 C2039。
+#      用 /FIcharconv 强制前置包含解决，无需改 Reflection。
 $ErrorActionPreference = 'Stop'
 $root = Split-Path -Parent $PSScriptRoot
 Set-Location $root
@@ -15,24 +24,47 @@ foreach ($c in $ready) {
     $abi = $c.abi
     $src = "vendor/protocol/v$v"
     $build = "build/codecs/v$v"
+    $fidelity = if ($c.fidelity) { $c.fidelity } else { 'upstream' }
 
     if (-not (Test-Path "$src/CMakeLists.txt")) {
-        Write-Host "==> clone Protocol branch $branch -> $src"
+        Write-Host "==> clone Protocol branch $branch -> $src (protocol v$v, fidelity=$fidelity)"
         git clone --depth 1 -b $branch https://github.com/SculkCatalystMC/Protocol.git $src
         if ($LASTEXITCODE -ne 0) { throw "clone failed for $branch" }
+
+        # 补丁 1：static_assert(obj.size()) -> static_assert(decltype(obj)::size())
+        $patched = 0
+        Get-ChildItem "$src/src" -Recurse -Filter *.cpp | ForEach-Object {
+            $text = Get-Content $_.FullName -Raw
+            $new = $text -replace 'static_assert\((m\w+)\.size\(\) == (\w+)\);', 'static_assert(decltype($1)::size() == $2);'
+            if ($new -ne $text) {
+                Set-Content $_.FullName -Value $new -NoNewline -Encoding UTF8
+                $patched++
+            }
+        }
+        Write-Host "==> MSVC patch: static_assert rewritten in $patched file(s)"
+
+        # 补丁 2：若上游 Reflection 已修复 <charconv>（GIT_TAG > v1.4.0）则本补丁自动失效。
+        $cmake = Join-Path $src 'CMakeLists.txt'
+        if ((Test-Path $cmake) -and (Select-String -Path $cmake -Pattern 'GIT_TAG v1\.4\.0' -Quiet)) {
+            Write-Host "==> reflection pinned to v1.4.0; /FIcharconv workaround will be applied at configure"
+        }
     }
 
-    # 字段级模型目前只在 main(=1001) 上验证过；v944 / v975 的 API 与之不同，
+    # 字段级模型目前只在 main(=1001) 上验证过；v944 / v975 / v898(派生) 的 API 与之不同，
     # 先用稳定的包头级编解码，避免跨分支 API 漂移导致编译失败。
     $fullModel = 'OFF'
     if ($branch -eq 'main') { $fullModel = 'ON' }
 
-    Write-Host "==> configure codec v$v (branch=$branch abi=$abi full_model=$fullModel)"
+    # /FIcharconv：reflection v1.4.0 的 string_utils.hpp 缺 <charconv>（MSVC C2039）。
+    $cxxFlags = '/DWIN32 /D_WINDOWS /EHsc /GR /utf-8 /FIcharconv'
+
+    Write-Host "==> configure codec v$v (branch=$branch abi=$abi fidelity=$fidelity full_model=$fullModel)"
     cmake -S codec -B $build -A x64 `
         "-DPROTOCOL_SOURCE_DIR=$src" `
         "-DCV_PROTOCOL_VERSION=$v" `
         "-DCV_ABI_NS=$abi" `
         "-DCV_BRANCH=$branch" `
+        "-DCMAKE_CXX_FLAGS=$cxxFlags" `
         "-DCV_ENABLE_FULL_PACKET_MODEL=$fullModel"
     if ($LASTEXITCODE -ne 0) { throw "cmake configure failed for v$v" }
 

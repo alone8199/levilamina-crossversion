@@ -20,6 +20,7 @@
     { "id": "1.21.110", "bds": "1.21.110.x", "levilamina": "21.110.0", "llVersionVerified": false, "serverProtocol": 844,  "clientProtocols": "all", "hookSymbols": {} },
     { "id": "1.21.120", "bds": "1.21.120.x", "levilamina": "21.120.0", "llVersionVerified": false, "serverProtocol": 859,  "clientProtocols": "all", "hookSymbols": {} },
     { "id": "1.21.130", "bds": "1.21.130.x", "levilamina": "21.130.0", "llVersionVerified": false, "serverProtocol": 898,  "clientProtocols": "all", "hookSymbols": {} },
+    { "id": "1.21.132", "bds": "1.21.132.x", "levilamina": "21.132.0", "llVersionVerified": false, "serverProtocol": 898,  "clientProtocols": "all", "hookSymbols": {} },
     { "id": "1.26.0",   "bds": "1.26.0.x",   "levilamina": "26.0.0",   "llVersionVerified": false, "serverProtocol": 924,  "clientProtocols": "all", "hookSymbols": {} },
     { "id": "1.26.10",  "bds": "1.26.10.x",  "levilamina": "26.10.0",  "llVersionVerified": false, "serverProtocol": 944,  "clientProtocols": "all", "hookSymbols": {} },
     { "id": "1.26.20",  "bds": "1.26.20.x",  "levilamina": "26.20.0",  "llVersionVerified": true,  "serverProtocol": 975,  "clientProtocols": "all", "hookSymbols": {} },
