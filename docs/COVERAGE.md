@@ -6,7 +6,7 @@
 
 | 层 | 状态 | 说明 |
 | --- | --- | --- |
-| 构建层（20 个 BDS 版本） | 完成 | `versions.json` + CI matrix，每个版本一个 zip，插件 DLL 与 LeviLamina 版本一一对应 |
+| 构建层（20 个 BDS 版本） | 完成 | `versions.json` + CI matrix，每个版本一个 zip；真机构建的 DLL 与 LeviLamina 版本一一对应 |
 | 路由层（26 个协议号） | 完成 | `ProtocolTable.h` 编译期注入，所有登记协议都能识别、按配置放行/拒绝/分流 |
 | 编解码层（codec） | 3 / 26 | 944、975、1001 有可编译 codec；其余为路由表占位 |
 | 翻译规则层 | 0 对 | `TranslationPipeline::hasRule` 当前只对同协议返回 true，跨版本字段级规则为空 |
