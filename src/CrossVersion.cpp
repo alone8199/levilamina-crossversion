@@ -193,7 +193,7 @@ std::size_t CodecManager::loadAll(const std::filesystem::path& directory) {
 
     std::error_code ec;
     if (!std::filesystem::exists(directory, ec)) {
-        logWarn(format("Codec directory: {0}", directory.string()));
+        logWarn(formatText("Codec directory: {0}", directory.string()));
         return 0;
     }
 
@@ -223,7 +223,7 @@ std::size_t CodecManager::loadAll(const std::filesystem::path& directory) {
         codec.session   = api->createSession ? api->createSession() : nullptr;
         codec.fullModel = api->decodeFull && api->encodeFull;
         mCodecs[codec.protocol] = codec;
-        logInfo(format("Codec v{0} loaded", codec.protocol) + (codec.fullModel ? " (full model)" : ""));
+        logInfo(formatText("Codec v{0} loaded", codec.protocol) + (codec.fullModel ? " (full model)" : ""));
 #endif
     }
 #endif
@@ -296,7 +296,7 @@ std::vector<std::uint8_t> TranslationPipeline::process(
         ? from->api->decodeFull(from->session, data, size, &packet)
         : from->api->decode(from->session, data, size, &packet);
     if (decodeResult != 0) {
-        logWarn(format("Packet decode failed for protocol {0}", fromProtocol));
+        logWarn(formatText("Packet decode failed for protocol {0}", fromProtocol));
         return {};
     }
 
@@ -312,7 +312,7 @@ std::vector<std::uint8_t> TranslationPipeline::process(
 
     if (to->api->releasePacket) to->api->releasePacket(&packet);
     if (encodeResult != 0 || !output) {
-        logWarn(format("Packet encode failed for protocol {0}", toProtocol));
+        logWarn(formatText("Packet encode failed for protocol {0}", toProtocol));
         return {};
     }
 
@@ -335,10 +335,10 @@ RouteResult ProtocolRouter::onClientHello(std::uint64_t guid, std::uint32_t clie
     result.clientProtocol = clientProtocol;
 
     if (!isKnownProtocol(clientProtocol)) {
-        result.reason = format("Network protocol {0} is not supported", clientProtocol);
+        result.reason = formatText("Network protocol {0} is not supported", clientProtocol);
         result.decision = RouteDecision::Reject;
     } else if (config.denied.count(clientProtocol) != 0 || (!config.allowAll && config.allowed.count(clientProtocol) == 0)) {
-        result.reason = format("Network protocol {0} is denied by config", clientProtocol);
+        result.reason = formatText("Network protocol {0} is denied by config", clientProtocol);
         result.decision = RouteDecision::Reject;
     } else if (clientProtocol == kServerProtocol) {
         result.decision = RouteDecision::Passthrough;
@@ -350,10 +350,10 @@ RouteResult ProtocolRouter::onClientHello(std::uint64_t guid, std::uint32_t clie
         result.reason   = "rule + codecs available";
     } else if (config.mode == RouteMode::Strict) {
         result.decision = RouteDecision::Reject;
-        result.reason   = format("Translation pair v{0}->v{1} is not implemented", clientProtocol, kServerProtocol);
+        result.reason   = formatText("Translation pair v{0}->v{1} is not implemented", clientProtocol, kServerProtocol);
     } else {
         result.decision = RouteDecision::Reject;
-        result.reason   = format("Translation pair v{0}->v{1} is not implemented", clientProtocol, kServerProtocol);
+        result.reason   = formatText("Translation pair v{0}->v{1} is not implemented", clientProtocol, kServerProtocol);
     }
 
     {
@@ -362,7 +362,7 @@ RouteResult ProtocolRouter::onClientHello(std::uint64_t guid, std::uint32_t clie
     }
 
     if (config.logSessions) {
-        logInfo(format("Route: client v{0} -> server v{1} ({2})", clientProtocol, kServerProtocol, result.reason));
+        logInfo(formatText("Route: client v{0} -> server v{1} ({2})", clientProtocol, kServerProtocol, result.reason));
     }
     if (result.decision == RouteDecision::Reject) logWarn(result.reason);
     return result;
@@ -417,10 +417,10 @@ bool Plugin::initialize() {
     const auto codecDir = mDirectory / ConfigStore::instance().get().codecDirectory;
     const auto count = CodecManager::instance().loadAll(codecDir);
 
-    logInfo(format("CrossVersion loaded! Target BDS {0}, server protocol {1}", std::string(kBdsVersion), kServerProtocol));
-    logInfo(format("Registered {0} client protocols", kAllProtocols.size()));
-    logInfo(format("Codec directory: {0}", codecDir.string()));
-    logInfo(format("Supported client protocols: {0}",
+    logInfo(formatText("CrossVersion loaded! Target BDS {0}, server protocol {1}", std::string(kBdsVersion), kServerProtocol));
+    logInfo(formatText("Registered {0} client protocols", kAllProtocols.size()));
+    logInfo(formatText("Codec directory: {0}", codecDir.string()));
+    logInfo(formatText("Supported client protocols: {0}",
                    joinProtocols(std::vector<std::uint32_t>(kAllProtocols.begin(), kAllProtocols.end()))));
 
     if (kReadyProtocols.empty()) {

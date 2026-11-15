@@ -34,7 +34,9 @@ std::string toString(T&& value) {
 }
 
 template <typename... Args>
-std::string format(const std::string& key, Args&&... args) {
+// 不使用 `format` 这个名字：MSVC 的 std::format 会通过 ADL 被带进候选集，
+// 在参数含 std::string / 整数时造成 C2668 二义性。
+std::string formatText(const std::string& key, Args&&... args) {
     return tr(key, std::vector<std::string>{toString(args)...});
 }
 
