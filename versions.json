@@ -1,0 +1,43 @@
+{
+  "schema": 1,
+  "plugin": "CrossVersion",
+  "description": "单插件 / 多版本构建清单。每一行对应一个按目标服务器版本单独编译的 CrossVersion.dll。",
+  "notes": [
+    "serverProtocol 为该版本 BDS 使用的网络协议号，取自 ProtocolLib 支持表。",
+    "clientProtocols = all 表示路由表接受 codec_registry.json 中登记的全部协议号，实现‘理论兼容所有支持的版本’；实际能否翻译取决于该协议是否已有 codec。",
+    "levilamina 字段为 xmake-repo 包名的推定值（规则：去掉 BDS 版本首位 1.，补丁号取 0）。llVersionVerified=false 表示尚未逐个核对 xmake-repo，CI 中可用 --ll_version= 覆盖。",
+    "hookSymbols 为按版本逆向得到的 BDS 符号表，空对象表示该版本的网络接管点待补齐；此时仍可编译出可加载的框架版 DLL。"
+  ],
+  "versions": [
+    { "id": "1.21.30",  "bds": "1.21.30.x",  "levilamina": "21.30.0",  "llVersionVerified": false, "serverProtocol": 729,  "clientProtocols": "all", "hookSymbols": {} },
+    { "id": "1.21.40",  "bds": "1.21.40.x",  "levilamina": "21.40.0",  "llVersionVerified": false, "serverProtocol": 748,  "clientProtocols": "all", "hookSymbols": {} },
+    { "id": "1.21.50",  "bds": "1.21.50.x",  "levilamina": "21.50.0",  "llVersionVerified": false, "serverProtocol": 766,  "clientProtocols": "all", "hookSymbols": {} },
+    { "id": "1.21.60",  "bds": "1.21.60.x",  "levilamina": "21.60.0",  "llVersionVerified": false, "serverProtocol": 776,  "clientProtocols": "all", "hookSymbols": {} },
+    { "id": "1.21.70",  "bds": "1.21.70.x",  "levilamina": "21.70.0",  "llVersionVerified": false, "serverProtocol": 786,  "clientProtocols": "all", "hookSymbols": {} },
+    { "id": "1.21.80",  "bds": "1.21.80.x",  "levilamina": "21.80.0",  "llVersionVerified": false, "serverProtocol": 800,  "clientProtocols": "all", "hookSymbols": {} },
+    { "id": "1.21.90",  "bds": "1.21.90.x",  "levilamina": "21.90.0",  "llVersionVerified": false, "serverProtocol": 818,  "clientProtocols": "all", "hookSymbols": {} },
+    { "id": "1.21.100", "bds": "1.21.100.x", "levilamina": "21.100.0", "llVersionVerified": false, "serverProtocol": 827,  "clientProtocols": "all", "hookSymbols": {} },
+    { "id": "1.21.110", "bds": "1.21.110.x", "levilamina": "21.110.0", "llVersionVerified": false, "serverProtocol": 844,  "clientProtocols": "all", "hookSymbols": {} },
+    { "id": "1.21.120", "bds": "1.21.120.x", "levilamina": "21.120.0", "llVersionVerified": false, "serverProtocol": 859,  "clientProtocols": "all", "hookSymbols": {} },
+    { "id": "1.21.130", "bds": "1.21.130.x", "levilamina": "21.130.0", "llVersionVerified": false, "serverProtocol": 898,  "clientProtocols": "all", "hookSymbols": {} },
+    { "id": "1.26.0",   "bds": "1.26.0.x",   "levilamina": "26.0.0",   "llVersionVerified": false, "serverProtocol": 924,  "clientProtocols": "all", "hookSymbols": {} },
+    { "id": "1.26.10",  "bds": "1.26.10.x",  "levilamina": "26.10.0",  "llVersionVerified": false, "serverProtocol": 944,  "clientProtocols": "all", "hookSymbols": {} },
+    { "id": "1.26.20",  "bds": "1.26.20.x",  "levilamina": "26.20.0",  "llVersionVerified": true,  "serverProtocol": 975,  "clientProtocols": "all", "hookSymbols": {} },
+    { "id": "1.26.30",  "bds": "1.26.30.x",  "levilamina": "26.30.0",  "llVersionVerified": false, "serverProtocol": 1001, "clientProtocols": "all", "hookSymbols": {} },
+    { "id": "1.26.40",  "bds": "1.26.40.x",  "levilamina": "26.40.0",  "llVersionVerified": false, "serverProtocol": 2168, "clientProtocols": "all", "hookSymbols": {} },
+    { "id": "1.26.45",  "bds": "1.26.45.x",  "levilamina": "26.45.0",  "llVersionVerified": false, "serverProtocol": 2169, "clientProtocols": "all", "hookSymbols": {} },
+    { "id": "1.26.50",  "bds": "1.26.50.x",  "levilamina": "26.50.0",  "llVersionVerified": false, "serverProtocol": 2192, "clientProtocols": "all", "hookSymbols": {} },
+    { "id": "1.26.51",  "bds": "1.26.51.x",  "levilamina": "26.51.0",  "llVersionVerified": false, "serverProtocol": 2193, "clientProtocols": "all", "hookSymbols": {} },
+    {
+      "id": "1.26.60",
+      "bds": "1.26.60.x",
+      "levilamina": "26.60.4",
+      "llVersionVerified": true,
+      "serverProtocol": 2225,
+      "clientProtocols": "all",
+      "hookSymbols": {
+        "dedicatedServerLoop": "?runDedicatedServerLoop@DedicatedServer@@QEAA?AW4ServerExitCode@@AEAVFilePathManager@Core@@AEBUPropertiesSettings@@AEAVLevelSettings@@AEAVAllowListFile@@AEAVEdi"
+      }
+    }
+  ]
+}

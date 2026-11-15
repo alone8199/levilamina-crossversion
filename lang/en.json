@@ -1,0 +1,19 @@
+{
+    "CrossVersion loaded! Target BDS {0}, server protocol {1}": "CrossVersion loaded! Target BDS {0}, server protocol {1}",
+    "Codec directory: {0}": "Codec directory: {0}",
+    "Registered {0} client protocols": "Registered {0} client protocols",
+    "Codec v{0} loaded": "Codec v{0} loaded",
+    "Codec v{0} not found, using passthrough": "Codec v{0} not found, using passthrough",
+    "Client connecting: GUID {0}, protocol {1}": "Client connecting: GUID {0}, protocol {1}",
+    "Network protocol {0} is not supported": "Network protocol {0} is not supported",
+    "Network protocol {0} is denied by config": "Network protocol {0} is denied by config",
+    "Route: client v{0} -> server v{1} ({2})": "Route: client v{0} -> server v{1} ({2})",
+    "Translation pair v{0}->v{1} is not implemented": "Translation pair v{0}->v{1} is not implemented",
+    "Packet decode failed for protocol {0}": "Packet decode failed for protocol {0}",
+    "Packet encode failed for protocol {0}": "Packet encode failed for protocol {0}",
+    "Hook symbols for this BDS version are not filled in; network interception is disabled": "Hook symbols for this BDS version are not filled in; network interception is disabled",
+    "Protocol {0} is now allowed": "Protocol {0} is now allowed",
+    "Protocol {0} is now denied": "Protocol {0} is now denied",
+    "Configuration reloaded": "Configuration reloaded",
+    "Supported client protocols: {0}": "Supported client protocols: {0}"
+}

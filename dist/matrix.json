@@ -1,0 +1,144 @@
+{
+  "include": [
+    {
+      "id": "1.21.30",
+      "bds": "1.21.30.x",
+      "ll_version": "21.30.0",
+      "server_protocol": 729,
+      "artifact": "CrossVersion-levilamina-1.21.30-windows-x86_64.zip"
+    },
+    {
+      "id": "1.21.40",
+      "bds": "1.21.40.x",
+      "ll_version": "21.40.0",
+      "server_protocol": 748,
+      "artifact": "CrossVersion-levilamina-1.21.40-windows-x86_64.zip"
+    },
+    {
+      "id": "1.21.50",
+      "bds": "1.21.50.x",
+      "ll_version": "21.50.0",
+      "server_protocol": 766,
+      "artifact": "CrossVersion-levilamina-1.21.50-windows-x86_64.zip"
+    },
+    {
+      "id": "1.21.60",
+      "bds": "1.21.60.x",
+      "ll_version": "21.60.0",
+      "server_protocol": 776,
+      "artifact": "CrossVersion-levilamina-1.21.60-windows-x86_64.zip"
+    },
+    {
+      "id": "1.21.70",
+      "bds": "1.21.70.x",
+      "ll_version": "21.70.0",
+      "server_protocol": 786,
+      "artifact": "CrossVersion-levilamina-1.21.70-windows-x86_64.zip"
+    },
+    {
+      "id": "1.21.80",
+      "bds": "1.21.80.x",
+      "ll_version": "21.80.0",
+      "server_protocol": 800,
+      "artifact": "CrossVersion-levilamina-1.21.80-windows-x86_64.zip"
+    },
+    {
+      "id": "1.21.90",
+      "bds": "1.21.90.x",
+      "ll_version": "21.90.0",
+      "server_protocol": 818,
+      "artifact": "CrossVersion-levilamina-1.21.90-windows-x86_64.zip"
+    },
+    {
+      "id": "1.21.100",
+      "bds": "1.21.100.x",
+      "ll_version": "21.100.0",
+      "server_protocol": 827,
+      "artifact": "CrossVersion-levilamina-1.21.100-windows-x86_64.zip"
+    },
+    {
+      "id": "1.21.110",
+      "bds": "1.21.110.x",
+      "ll_version": "21.110.0",
+      "server_protocol": 844,
+      "artifact": "CrossVersion-levilamina-1.21.110-windows-x86_64.zip"
+    },
+    {
+      "id": "1.21.120",
+      "bds": "1.21.120.x",
+      "ll_version": "21.120.0",
+      "server_protocol": 859,
+      "artifact": "CrossVersion-levilamina-1.21.120-windows-x86_64.zip"
+    },
+    {
+      "id": "1.21.130",
+      "bds": "1.21.130.x",
+      "ll_version": "21.130.0",
+      "server_protocol": 898,
+      "artifact": "CrossVersion-levilamina-1.21.130-windows-x86_64.zip"
+    },
+    {
+      "id": "1.26.0",
+      "bds": "1.26.0.x",
+      "ll_version": "26.0.0",
+      "server_protocol": 924,
+      "artifact": "CrossVersion-levilamina-1.26.0-windows-x86_64.zip"
+    },
+    {
+      "id": "1.26.10",
+      "bds": "1.26.10.x",
+      "ll_version": "26.10.0",
+      "server_protocol": 944,
+      "artifact": "CrossVersion-levilamina-1.26.10-windows-x86_64.zip"
+    },
+    {
+      "id": "1.26.20",
+      "bds": "1.26.20.x",
+      "ll_version": "26.20.0",
+      "server_protocol": 975,
+      "artifact": "CrossVersion-levilamina-1.26.20-windows-x86_64.zip"
+    },
+    {
+      "id": "1.26.30",
+      "bds": "1.26.30.x",
+      "ll_version": "26.30.0",
+      "server_protocol": 1001,
+      "artifact": "CrossVersion-levilamina-1.26.30-windows-x86_64.zip"
+    },
+    {
+      "id": "1.26.40",
+      "bds": "1.26.40.x",
+      "ll_version": "26.40.0",
+      "server_protocol": 2168,
+      "artifact": "CrossVersion-levilamina-1.26.40-windows-x86_64.zip"
+    },
+    {
+      "id": "1.26.45",
+      "bds": "1.26.45.x",
+      "ll_version": "26.45.0",
+      "server_protocol": 2169,
+      "artifact": "CrossVersion-levilamina-1.26.45-windows-x86_64.zip"
+    },
+    {
+      "id": "1.26.50",
+      "bds": "1.26.50.x",
+      "ll_version": "26.50.0",
+      "server_protocol": 2192,
+      "artifact": "CrossVersion-levilamina-1.26.50-windows-x86_64.zip"
+    },
+    {
+      "id": "1.26.51",
+      "bds": "1.26.51.x",
+      "ll_version": "26.51.0",
+      "server_protocol": 2193,
+      "artifact": "CrossVersion-levilamina-1.26.51-windows-x86_64.zip"
+    },
+    {
+      "id": "1.26.60",
+      "bds": "1.26.60.x",
+      "ll_version": "26.60.4",
+      "server_protocol": 2225,
+      "artifact": "CrossVersion-levilamina-1.26.60-windows-x86_64.zip"
+    }
+  ]
+}

@@ -1,0 +1,32 @@
+{
+    // 允许的客户端协议版本。"all" = 按 codec_registry.json 全表放行（理论兼容所有支持的版本）
+    // 也可以写成数组精确指定，例如 [844, 859, 860, 944, 975, 1001]
+    "allowedProtocols": "all",
+
+    // 明确拒绝的协议版本（优先级高于 allowedProtocols）
+    "deniedProtocols": [],
+
+    // strict       = 没有 codec 的协议直接断开连接
+    // passthrough  = 没有 codec 时，仅当客户端协议 == 服务端协议才直通，否则断开
+    "mode": "passthrough",
+
+    // codec_v*.dll 所在目录（相对插件目录）
+    "codecDirectory": "codecs",
+
+    // 会话级日志：连接协议、路由结果、翻译失败原因
+    "logSessions": true,
+    "logLevel": "info",
+
+    // 翻译链开关。翻译规则按「客户端协议 -> 服务端协议」逐对补齐，
+    // 未登记的翻译对会自动回退到直通或拒绝（取决于 mode）。
+    "features": {
+        "translateLogin": true,
+        "translatePackets": true,
+        "virtualContent": false,
+        "virtualActor": false,
+        "blockStateCompat": false
+    },
+
+    // 语言文件：zh_CN / en
+    "language": "zh_CN"
+}

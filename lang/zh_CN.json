@@ -1,0 +1,19 @@
+{
+    "CrossVersion loaded! Target BDS {0}, server protocol {1}": "CrossVersion 已加载！目标 BDS {0}，服务端协议 {1}",
+    "Codec directory: {0}": "编解码器目录: {0}",
+    "Registered {0} client protocols": "已注册 {0} 个客户端协议",
+    "Codec v{0} loaded": "编解码器 v{0} 已加载",
+    "Codec v{0} not found, using passthrough": "未找到编解码器 v{0}，使用直通模式",
+    "Client connecting: GUID {0}, protocol {1}": "客户端连接中: GUID {0}，协议 {1}",
+    "Network protocol {0} is not supported": "不支持的网络协议: {0}",
+    "Network protocol {0} is denied by config": "配置已禁止网络协议: {0}",
+    "Route: client v{0} -> server v{1} ({2})": "路由: 客户端 v{0} -> 服务端 v{1} ({2})",
+    "Translation pair v{0}->v{1} is not implemented": "翻译对 v{0}->v{1} 尚未实现",
+    "Packet decode failed for protocol {0}": "协议 {0} 的数据包解码失败",
+    "Packet encode failed for protocol {0}": "协议 {0} 的数据包编码失败",
+    "Hook symbols for this BDS version are not filled in; network interception is disabled": "当前 BDS 版本的 hook 符号表未填写，网络接管已禁用",
+    "Protocol {0} is now allowed": "协议 {0} 现已允许",
+    "Protocol {0} is now denied": "协议 {0} 现已禁止",
+    "Configuration reloaded": "配置已重新加载",
+    "Supported client protocols: {0}": "支持的客户端协议: {0}"
+}

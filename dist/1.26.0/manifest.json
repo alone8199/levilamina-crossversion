@@ -1,0 +1,6 @@
+{
+    "name": "CrossVersion",
+    "entry": "CrossVersion.dll",
+    "version": "0.1.0+1.26.0",
+    "type": "native"
+}

@@ -1,0 +1,182 @@
+name: build
+
+on:
+  push:
+    branches: [main]
+    tags: ['v*']
+  pull_request:
+  workflow_dispatch:
+    inputs:
+      versions:
+        description: '逗号分隔的版本 id（留空 = 全部 20 个），例如 1.21.120,1.26.30,1.26.60'
+        required: false
+        default: ''
+
+permissions:
+  contents: write
+
+concurrency:
+  group: cv-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  # 1. 从 versions.json 生成 20 项 matrix，并产出每个版本的 manifest / 构建描述。
+  prepare:
+    runs-on: ubuntu-latest
+    outputs:
+      matrix: ${{ steps.gen.outputs.matrix }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: 生成构建矩阵
+        id: gen
+        run: |
+          ARGS=""
+          if [ -n "${{ github.event.inputs.versions }}" ]; then
+            ARGS="--only ${{ github.event.inputs.versions }}"
+          fi
+          echo "matrix=$(python3 scripts/generate_matrix.py --emit-matrix $ARGS)" >> "$GITHUB_OUTPUT"
+      - name: 生成各版本发布描述
+        run: python3 scripts/generate_matrix.py $ARGS
+      - name: 静态自检
+        run: python3 scripts/verify_layout.py
+      - uses: actions/upload-artifact@v4
+        with:
+          name: build-descriptors
+          path: dist/
+          retention-days: 14
+
+  # 2. Linux 上真编译 + 跑路由自测。验证注入头、配置解析、路由决策，不是只查文件存在。
+  verify:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: 注入默认目标版本
+        run: python3 scripts/generate_matrix.py
+      - name: CMake 配置
+        run: cmake -S . -B build -DCMAKE_BUILD_TYPE=Release -DCV_BUILD_TESTS=ON
+      - name: 编译 libCrossVersion.so + cv_verify
+        run: cmake --build build -j4
+      - name: 运行路由自测
+        run: ctest --test-dir build --output-on-failure
+
+  # 3. 尝试编译 Protocol 三个开源分支的 codec。失败不阻塞主构建（实验性）。
+  build-codecs:
+    runs-on: windows-2022
+    continue-on-error: true
+    steps:
+      - uses: actions/checkout@v4
+      - uses: ilammy/msvc-dev-cmd@v1
+        with:
+          arch: x64
+      - uses: jwlawson/actions-setup-cmake@v2
+      - name: 编译各协议版本 codec
+        shell: pwsh
+        run: ./scripts/build_codecs.ps1
+      - uses: actions/upload-artifact@v4
+        with:
+          name: codecs
+          path: out/codecs/
+          if-no-files-found: ignore
+          retention-days: 14
+
+  # 4. 每个 BDS 版本单独编译一个 CrossVersion.dll。
+  #    standalone 路径：不链接 LeviLamina SDK / BDS 符号，用 compat/ll/api/Logger.h 替代，
+  #    保证 20 个版本都能真正编译、链接、出包。真机可 hook 版本走 xmake.lua（见 README）。
+  build:
+    needs: [prepare, verify]
+    runs-on: windows-2022
+    strategy:
+      fail-fast: false
+      max-parallel: 6
+      matrix: ${{ fromJSON(needs.prepare.outputs.matrix) }}
+    name: BDS ${{ matrix.id }} / proto ${{ matrix.server_protocol }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - uses: actions/download-artifact@v4
+        with:
+          name: build-descriptors
+          path: dist
+      - name: 注入本版本 TargetConfig.h
+        run: python scripts/generate_matrix.py --target ${{ matrix.id }}
+      - name: 确认注入内容
+        run: type src\generated\TargetConfig.h
+        shell: cmd
+      - name: CMake 配置（VS2022 x64）
+        run: cmake -S . -B build -G "Visual Studio 17 2022" -A x64 -DCV_BUILD_TESTS=OFF
+      - name: 编译 CrossVersion.dll
+        run: cmake --build build --config Release --parallel 4
+      - name: 下载可选 codec
+        continue-on-error: true
+        uses: actions/download-artifact@v4
+        with:
+          name: codecs
+          path: out/codecs
+      - name: 组装发布包
+        shell: pwsh
+        run: |
+          $stage = "staging/CrossVersion"
+          New-Item -ItemType Directory -Force -Path $stage, "$stage/lang", "$stage/codecs" | Out-Null
+          Copy-Item "build/Release/CrossVersion.dll" "$stage/CrossVersion.dll" -Force
+          Copy-Item "dist/${{ matrix.id }}/manifest.json" "$stage/manifest.json" -Force
+          Copy-Item "dist/${{ matrix.id }}/TargetConfig.h" "$stage/TargetConfig.h" -Force
+          Copy-Item "config/config.jsonc" "$stage/config.jsonc" -Force
+          Copy-Item "lang/*.json" "$stage/lang/" -Force
+          Copy-Item "dist/${{ matrix.id }}/README.txt" "$stage/README.txt" -Force
+          if (Test-Path "out/codecs") {
+            Copy-Item "out/codecs/*" "$stage/codecs/" -Force -ErrorAction SilentlyContinue
+          }
+          $notes = @(
+            "CrossVersion / BDS ${{ matrix.bds }}",
+            "================================================",
+            "LeviLamina target : ${{ matrix.ll_version }}",
+            "Server protocol   : ${{ matrix.server_protocol }}",
+            "Build             : GitHub Actions standalone (CMake + MSVC)",
+            "Commit            : ${{ github.sha }}",
+            "",
+            "这个 DLL 是 standalone 构建：不链接 LeviLamina SDK，也不 hook BDS 网络符号。",
+            "它包含完整的配置解析、26 项协议路由表、codec 动态加载与翻译链，",
+            "可被加载并做自检，但不能直接让不同版本客户端进服。",
+            "",
+            "要产出可接管网络的真机插件，请在 Windows + VS2022 + xmake >= 3.0.0 下：",
+            "  python scripts/generate_matrix.py --target ${{ matrix.id }}",
+            "  xmake f -y -p windows -a x64 -m release --ll_version=${{ matrix.ll_version }} --cv_server_protocol=${{ matrix.server_protocol }} --cv_bds_version=${{ matrix.id }}",
+            "  xmake -y",
+            "并先补齐 versions.json 里本版本的 hookSymbols 与对应翻译规则。",
+            "详见仓库 README 第 6 节。"
+          )
+          $notes | Set-Content "$stage/STATUS.txt" -Encoding UTF8
+          New-Item -ItemType Directory -Force -Path "out" | Out-Null
+          Compress-Archive -Path "staging/CrossVersion" -DestinationPath "out/${{ matrix.artifact }}" -Force
+          Write-Host "Built out/${{ matrix.artifact }}"
+      - uses: actions/upload-artifact@v4
+        with:
+          name: pkg-${{ matrix.id }}
+          path: out/${{ matrix.artifact }}
+          retention-days: 30
+
+  # 5. 打 tag 时把 20 个 zip 汇总成一个 Release。
+  release:
+    if: startsWith(github.ref, 'refs/tags/v')
+    needs: [build]
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          path: artifacts
+          pattern: 'pkg-*'
+          merge-multiple: true
+      - name: 列出产物
+        run: ls -lh artifacts/*.zip | head -30
+      - uses: softprops/action-gh-release@v2
+        with:
+          files: artifacts/*.zip
+          generate_release_notes: true

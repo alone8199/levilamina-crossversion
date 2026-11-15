@@ -1,0 +1,37 @@
+{
+    "format_version": 3,
+    "format_uuid": "6f4a1d2e-3b7c-4a90-9f15-8c2d7e0b41aa",
+    "tooth": "github.com/simimasai111/levilamina-crossversion",
+    "version": "0.1.0",
+    "info": {
+        "name": "CrossVersion",
+        "description": "Single-plugin Bedrock cross-version protocol routing for LeviLamina",
+        "tags": ["crossversion", "protocol", "multiversion", "type:mod", "platform:levilamina"],
+        "avatar_url": ""
+    },
+    "variants": [
+        {
+            "label": "",
+            "platform": "win-x64",
+            "dependencies": {},
+            "assets": [
+                {
+                    "type": "zip",
+                    "urls": [
+                        "https://github.com/simimasai111/levilamina-crossversion/releases/download/v{{version}}/CrossVersion-levilamina-{{bds}}-windows-x86_64.zip"
+                    ],
+                    "placements": [
+                        { "type": "dir", "src": "CrossVersion/", "dest": "plugins/CrossVersion/" }
+                    ]
+                }
+            ],
+            "preserve_files": ["plugins/CrossVersion/config.jsonc"],
+            "remove_files": [],
+            "scripts": {
+                "pre_install": [], "install": [], "post_install": [],
+                "pre_pack": [], "post_pack": [],
+                "pre_uninstall": [], "uninstall": [], "post_uninstall": []
+            }
+        }
+    ]
+}

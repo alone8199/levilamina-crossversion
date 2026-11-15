@@ -1,0 +1,16 @@
+{
+  "id": "1.26.10",
+  "bds": "1.26.10.x",
+  "levilamina": "26.10.0",
+  "serverProtocol": 944,
+  "clientProtocols": "all",
+  "artifact": "CrossVersion-levilamina-1.26.10-windows-x86_64.zip",
+  "xmake": [
+    "xmake f -y -p windows -a x64 -m release",
+    "  --ll_version=26.10.0",
+    "  --cv_server_protocol=944",
+    "  --cv_bds_version=1.26.10",
+    "xmake -y"
+  ],
+  "hookSymbols": {}
+}
