@@ -19,6 +19,7 @@ add_library(codec_v${CV_PROTOCOL_VERSION} SHARED CodecExports.cpp)
 target_compile_features(codec_v${CV_PROTOCOL_VERSION} PRIVATE cxx_std_23)
 target_include_directories(codec_v${CV_PROTOCOL_VERSION} PRIVATE
     "${CMAKE_CURRENT_SOURCE_DIR}/../src"
+    "${PROTOCOL_SOURCE_DIR}/include"
 )
 target_link_libraries(codec_v${CV_PROTOCOL_VERSION} PRIVATE Protocol::Protocol)
 target_compile_definitions(codec_v${CV_PROTOCOL_VERSION} PRIVATE
