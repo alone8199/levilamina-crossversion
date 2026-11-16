@@ -87,9 +87,10 @@ jobs:
 
   # 4. 每个 BDS 版本单独编译一个 CrossVersion.dll。
   #    standalone 路径：不链接 LeviLamina SDK / BDS 符号，用 compat/ll/api/Logger.h 替代，
-  #    保证 20 个版本都能真正编译、链接、出包。真机可 hook 版本走 xmake.lua（见 README）。
+  #    保证全部版本都能真正编译、链接、出包。真机可 hook 版本走 xmake.lua（见 README）。
+  #    needs 包含 build-codecs：codec 编完才组装发布包，保证每个包自带 codecs/ 模块。
   build:
-    needs: [prepare, verify]
+    needs: [prepare, verify, build-codecs]
     runs-on: windows-2022
     strategy:
       fail-fast: false
