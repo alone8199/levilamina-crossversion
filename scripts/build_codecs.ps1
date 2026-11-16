@@ -54,8 +54,11 @@ foreach ($c in $ready) {
 
     # 字段级模型目前只在 main(=1001) 上验证过；v944 / v975 / v898(派生) 的 API 与之不同，
     # 先用稳定的包头级编解码，避免跨分支 API 漂移导致编译失败。
+    # sculk/protocol/Version.hpp 也只存在于 main 分支，其余分支用 registry 的 mc 字符串。
     $fullModel = 'OFF'
-    if ($branch -eq 'main') { $fullModel = 'ON' }
+    $hasVer = 'OFF'
+    if ($branch -eq 'main') { $fullModel = 'ON'; $hasVer = 'ON' }
+    $mcVersion = if ($c.mc) { $c.mc } else { "protocol $v" }
 
     # /FIcharconv：reflection v1.4.0 的 string_utils.hpp 缺 <charconv>（MSVC C2039）。
     $cxxFlags = '/DWIN32 /D_WINDOWS /EHsc /GR /utf-8 /FIcharconv'
@@ -66,6 +69,8 @@ foreach ($c in $ready) {
         "-DCV_PROTOCOL_VERSION=$v" `
         "-DCV_ABI_NS=$abi" `
         "-DCV_BRANCH=$branch" `
+        "-DCV_MC_VERSION=$mcVersion" `
+        "-DCV_HAS_VERSION_HPP=$hasVer" `
         "-DCMAKE_CXX_FLAGS=$cxxFlags" `
         "-DCV_ENABLE_FULL_PACKET_MODEL=$fullModel"
     if ($LASTEXITCODE -ne 0) { throw "cmake configure failed for v$v" }

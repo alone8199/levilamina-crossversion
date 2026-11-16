@@ -6,7 +6,11 @@
 // 目前只在 main(v1001) 分支上验证过；接入点已留在 decodeFull / encodeFull。
 #include "CodecApi.h"
 
+// sculk/protocol/Version.hpp 只在 main(=1001) 分支存在；v944 / v975 / 派生分支没有。
+// 没有 Version.hpp 的分支用 CI 注入的 CV_MC_VERSION 字符串。
+#ifdef CV_HAS_VERSION_HPP
 #include "sculk/protocol/Version.hpp"
+#endif
 
 #include <cstdint>
 #include <cstdlib>
@@ -19,11 +23,16 @@
 #ifndef CV_ABI_NS
 #define CV_ABI_NS "abi_v1001"
 #endif
+#ifndef CV_MC_VERSION
+#define CV_MC_VERSION "unknown"
+#endif
 
+#ifdef CV_HAS_VERSION_HPP
 static_assert(
     SCULK_NETWORK_PROTOCOL_VERSION == CV_PROTOCOL_VERSION,
     "Protocol branch does not match CV_PROTOCOL_VERSION"
 );
+#endif
 
 #ifdef CV_ENABLE_FULL_PACKET_MODEL
 #include "sculk/protocol/codec/MinecraftPackets.hpp"
@@ -169,7 +178,11 @@ void releasePacketImpl(CvPacket* packet) {
 const CvCodecApi kApi = {
     1u,
     static_cast<std::uint32_t>(CV_PROTOCOL_VERSION),
+#ifdef CV_HAS_VERSION_HPP
     SCULK_MINECRAFT_VERSION,
+#else
+    CV_MC_VERSION,
+#endif
     CV_ABI_NS,
     &createSessionImpl,
     &destroySessionImpl,

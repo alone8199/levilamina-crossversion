@@ -7,6 +7,8 @@ set(PROTOCOL_SOURCE_DIR "" CACHE PATH "Path to a checkout of SculkCatalystMC/Pro
 set(CV_PROTOCOL_VERSION 1001 CACHE STRING "Network protocol version produced by this codec")
 set(CV_ABI_NS "abi_v1001" CACHE STRING "ABI namespace of the Protocol branch (for diagnostics)")
 set(CV_BRANCH "main" CACHE STRING "Protocol branch name (for diagnostics)")
+set(CV_MC_VERSION "unknown" CACHE STRING "Minecraft version string reported by the codec when Version.hpp is absent")
+option(CV_HAS_VERSION_HPP "Branch provides sculk/protocol/Version.hpp (only main/1001)" OFF)
 option(CV_ENABLE_FULL_PACKET_MODEL "Use the full IPacket model (only validated on main/v1001)" OFF)
 
 if(NOT PROTOCOL_SOURCE_DIR OR NOT EXISTS "${PROTOCOL_SOURCE_DIR}/CMakeLists.txt")
@@ -27,9 +29,14 @@ target_compile_definitions(codec_v${CV_PROTOCOL_VERSION} PRIVATE
     CV_PROTOCOL_VERSION=${CV_PROTOCOL_VERSION}
     CV_ABI_NS="${CV_ABI_NS}"
     CV_BRANCH="${CV_BRANCH}"
+    CV_MC_VERSION="${CV_MC_VERSION}"
     NOMINMAX
     UNICODE
 )
+
+if(CV_HAS_VERSION_HPP)
+    target_compile_definitions(codec_v${CV_PROTOCOL_VERSION} PRIVATE CV_HAS_VERSION_HPP=1)
+endif()
 
 if(CV_ENABLE_FULL_PACKET_MODEL)
     target_compile_definitions(codec_v${CV_PROTOCOL_VERSION} PRIVATE CV_ENABLE_FULL_PACKET_MODEL=1)
